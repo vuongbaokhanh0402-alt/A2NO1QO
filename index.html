@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>20/10 - Đuổi Emoji Bắt Bạn Nam</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Quicksand', sans-serif; }
+    .letter-box {
+      width: 44px;
+      height: 52px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 4px solid #f43f5e;
+      font-size: 24px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin: 4px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .letter-box.space {
+      width: 20px;
+      border-bottom: none;
+    }
+    .emoji-slot {
+      width: 86px;
+      height: 86px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      border-radius: 1.25rem;
+      background: #fff;
+      box-shadow: 0 4px 10px -2px rgba(0,0,0,0.06), inset 0 2px 4px rgba(0,0,0,0.04);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .emoji-slot.active {
+      transform: scale(1.1);
+      border-color: #f43f5e;
+      background: #fff1f2;
+      box-shadow: 0 8px 20px -4px rgba(244, 63, 94, 0.3);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-rose-100 via-pink-50 to-rose-200 min-h-screen flex items-center justify-center p-4">
+
+  <!-- Thẻ Card Trung Tâm -->
+  <div class="bg-white/95 backdrop-blur-md shadow-2xl rounded-3xl p-8 max-w-2xl w-full border border-pink-200 text-center relative overflow-hidden">
+    
+    <!-- Header -->
+    <div class="mb-4">
+      <span class="inline-block bg-rose-100 text-rose-600 px-4 py-1 rounded-full text-xs font-bold tracking-wider mb-2 uppercase">
+        20/10 • A2-K64 QUỐC OAI
+      </span>
+      <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 tracking-tight">
+        Truy Tìm Chàng Trai Bí Ẩn 🎁
+      </h1>
+    </div>
+
+    <!-- Cooldown Timer Bar (60s) -->
+    <div class="mb-6 bg-pink-100 rounded-full p-1.5 border border-pink-200">
+      <div class="flex justify-between text-xs font-bold text-pink-700 px-3 py-1">
+        <span>⏱️ Thời gian giải đố</span>
+        <span id="timer-text" class="text-sm font-extrabold text-rose-600">60s</span>
+      </div>
+      <div class="w-full bg-pink-200/60 rounded-full h-3.5 overflow-hidden">
+        <div id="timer-bar" class="bg-gradient-to-r from-pink-500 to-rose-500 h-3.5 rounded-full transition-all duration-1000 ease-linear w-full"></div>
+      </div>
+    </div>
+
+    <!-- Khung hiển thị Emoji hé lộ dần -->
+    <div class="bg-pink-50/80 border-2 border-dashed border-pink-300 rounded-2xl p-6 mb-6 shadow-inner">
+      <div class="text-xs uppercase tracking-widest text-pink-500 font-bold mb-4">
+        Manh mối Emoji (Mở thêm sau mỗi 15 giây)
+      </div>
+      <div class="flex justify-center gap-5 my-2">
+        <div id="emoji-1" class="emoji-slot border-2 border-pink-200 text-slate-300">❓</div>
+        <div id="emoji-2" class="emoji-slot border-2 border-pink-200 text-slate-300">❓</div>
+        <div id="emoji-3" class="emoji-slot border-2 border-pink-200 text-slate-300">❓</div>
+      </div>
+    </div>
+
+    <!-- Ô chữ cái Hangman -->
+    <div id="hangman-container" class="flex flex-wrap justify-center items-center min-h-[64px] mb-6"></div>
+
+    <!-- Card khi mở đáp án -->
+    <div id="reveal-card" class="hidden bg-gradient-to-r from-rose-500 to-pink-500 text-white p-6 rounded-2xl shadow-lg mb-6 transform transition-all duration-500 scale-95">
+      <div class="text-xs uppercase tracking-wider text-rose-200 font-bold mb-1">Chàng trai trao quà hôm nay</div>
+      <div class="text-2xl md:text-3xl font-extrabold tracking-wide" id="revealed-name">NGUYỄN VĂN A</div>
+      <p class="text-rose-100 mt-2 font-medium italic text-sm md:text-base" id="revealed-wish">"Chúc các bạn nữ luôn vui vẻ và hạnh phúc!"</p>
+    </div>
+
+    <!-- Hàng nút điều khiển -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+      <button id="btn-next" onclick="nextRound()" class="col-span-2 md:col-span-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 px-3 rounded-xl shadow transition transform active:scale-95 text-sm flex items-center justify-center gap-1">
+        🎲 Lượt mới
+      </button>
+
+      <button id="btn-reveal-emoji" onclick="revealNextEmoji()" disabled class="bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold py-3.5 px-3 rounded-xl shadow transition transform active:scale-95 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+        🔍 Mở icon (<span id="emoji-count">0</span>/3)
+      </button>
+
+      <button id="btn-hint" onclick="revealLetter()" disabled class="bg-sky-400 hover:bg-sky-500 text-white font-bold py-3.5 px-3 rounded-xl shadow transition transform active:scale-95 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+        💡 Mở 1 chữ cái
+      </button>
+
+      <button id="btn-reveal" onclick="revealFull()" disabled class="col-span-2 md:col-span-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-3 rounded-xl shadow transition transform active:scale-95 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+        🎉 Mở đáp án
+      </button>
+    </div>
+
+    <!-- Số người còn lại -->
+    <div class="mt-6 text-xs text-gray-400 font-medium">
+      Còn lại: <span id="remaining-count" class="font-bold text-rose-600">0</span> bạn nam chưa lên sóng
+    </div>
+
+  </div>
+
+  <script>
+    let boysPool = [
+      {
+        name: "NGỌC THÀNH",
+        emojis: ["📺", "⚽", "3️⃣6️⃣"],
+        wish: "Chúc bạn nữ 20/10 luôn rạng rỡ, xinh đẹp và ngập tràn niềm vui!"
+      },
+      {
+        name: "BẢO KHANH",
+        emojis: ["⚽", "🐐", "😎"],
+        wish: "Chúc bạn 20/10 luôn toả sáng, cười nhiều và nhận thật nhiều quà nhé!"
+      },
+      {
+        name: "TUẤN HƯNG",
+        emojis: ["🇨", "⚽", "🥛"],
+        wish: "Chúc bạn một ngày 20/10 thật ngọt ngào, hạnh phúc và luôn vui vẻ!"
+      },
+      {
+        name: "THANH BÌNH",
+        emojis: ["🏳️‍🌈", "🎮", "🦟"],
+        wish: "Chúc bạn 20/10 luôn toả sáng, cười nhiều và nhận thật nhiều quà nhé!"
+      },
+      {
+        name: "DUY DƯƠNG",
+        emojis: ["⚽", "🛡️", "🐻"],
+        wish: "Chúc bạn 20/10 luôn toả sáng, cười nhiều và nhận thật nhiều quà nhé!"
+      },
+      {
+        name: "QUANG HUẤN",
+        emojis: ["🚫", "🧠", "😄"],
+        wish: "Chúc bạn 20/10 luôn toả sáng, cười nhiều và nhận thật nhiều quà nhé!"
+      }
+    ];
+
+    let currentBoy = null;
+    let revealedEmojiIndex = 0;
+    let revealedLetterIndices = [];
+    
+    const TOTAL_TIME = 60; 
+    let timeLeft = TOTAL_TIME;
+    let timerInterval = null;
+
+    const timerText = document.getElementById("timer-text");
+    const timerBar = document.getElementById("timer-bar");
+    const hangmanContainer = document.getElementById("hangman-container");
+    const revealCard = document.getElementById("reveal-card");
+    const revealedName = document.getElementById("revealed-name");
+    const revealedWish = document.getElementById("revealed-wish");
+    const btnRevealEmoji = document.getElementById("btn-reveal-emoji");
+    const btnHint = document.getElementById("btn-hint");
+    const btnReveal = document.getElementById("btn-reveal");
+    const remainingCount = document.getElementById("remaining-count");
+    const emojiCountSpan = document.getElementById("emoji-count");
+
+    function updateRemaining() {
+      remainingCount.innerText = boysPool.length;
+    }
+    updateRemaining();
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = TOTAL_TIME;
+      timerText.innerText = `${timeLeft}s`;
+      timerBar.style.width = "100%";
+      timerBar.classList.remove("from-red-500", "to-amber-500");
+      timerBar.classList.add("from-pink-500", "to-rose-500");
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerText.innerText = `${timeLeft}s`;
+        const percentage = (timeLeft / TOTAL_TIME) * 100;
+        timerBar.style.width = `${percentage}%`;
+
+        if (timeLeft === 45 && revealedEmojiIndex < 2) {
+          revealNextEmoji();
+        } else if (timeLeft === 30 && revealedEmojiIndex < 3) {
+          revealNextEmoji();
+        }
+
+        if (timeLeft <= 10) {
+          timerBar.classList.remove("from-pink-500", "to-rose-500");
+          timerBar.classList.add("from-red-500", "to-amber-500");
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerText.innerText = "Hết giờ!";
+        }
+      }, 1000);
+    }
+
+    function nextRound() {
+      if (boysPool.length === 0) {
+        alert("Đã hết danh sách các bạn nam! Chúc mừng các bạn nữ 20/10!");
+        return;
+      }
+
+      const randomIndex = Math.floor(Math.random() * boysPool.length);
+      currentBoy = boysPool.splice(randomIndex, 1)[0];
+      updateRemaining();
+
+      revealedEmojiIndex = 0;
+      revealedLetterIndices = [];
+      emojiCountSpan.innerText = "0";
+
+      for (let i = 1; i <= 3; i++) {
+        const slot = document.getElementById(`emoji-${i}`);
+        slot.innerText = "❓";
+        slot.className = "emoji-slot border-2 border-pink-200 text-slate-300";
+      }
+
+      revealCard.classList.add("hidden");
+      revealCard.classList.remove("scale-100");
+      revealCard.classList.add("scale-95");
+
+      renderHangman();
+      startTimer();
+
+      revealNextEmoji();
+
+      btnRevealEmoji.disabled = false;
+      btnHint.disabled = false;
+      btnReveal.disabled = false;
+    }
+
+    function revealNextEmoji() {
+      if (!currentBoy || revealedEmojiIndex >= 3) return;
+
+      revealedEmojiIndex++;
+      const slot = document.getElementById(`emoji-${revealedEmojiIndex}`);
+      slot.innerText = currentBoy.emojis[revealedEmojiIndex - 1];
+      slot.classList.remove("text-slate-300", "border-pink-200");
+      slot.classList.add("active");
+
+      emojiCountSpan.innerText = revealedEmojiIndex;
+
+      if (revealedEmojiIndex >= 3) {
+        btnRevealEmoji.disabled = true;
+      }
+    }
+
+    function renderHangman() {
+      hangmanContainer.innerHTML = "";
+      const letters = currentBoy.name.split("");
+
+      letters.forEach((char, index) => {
+        const box = document.createElement("div");
+        if (char === " ") {
+          box.className = "letter-box space";
+          box.innerText = "";
+        } else {
+          box.className = "letter-box text-rose-600 bg-rose-50/70 rounded-lg shadow-sm";
+          if (revealedLetterIndices.includes(index)) {
+            box.innerText = char;
+            box.classList.add("bg-rose-100", "scale-105");
+          } else {
+            box.innerText = "";
+          }
+        }
+        hangmanContainer.appendChild(box);
+      });
+    }
+
+    function revealLetter() {
+      if (!currentBoy) return;
+
+      const unrevealed = [];
+      const letters = currentBoy.name.split("");
+
+      letters.forEach((char, idx) => {
+        if (char !== " " && !revealedLetterIndices.includes(idx)) {
+          unrevealed.push(idx);
+        }
+      });
+
+      if (unrevealed.length > 0) {
+        const pick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+        revealedLetterIndices.push(pick);
+        renderHangman();
+      }
+
+      if (unrevealed.length <= 1) {
+        btnHint.disabled = true;
+      }
+    }
+
+    function revealFull() {
+      if (!currentBoy) return;
+
+      clearInterval(timerInterval);
+
+      for (let i = 1; i <= 3; i++) {
+        const slot = document.getElementById(`emoji-${i}`);
+        slot.innerText = currentBoy.emojis[i - 1];
+        slot.classList.add("active");
+      }
+      emojiCountSpan.innerText = "3";
+
+      revealedLetterIndices = currentBoy.name.split("").map((_, i) => i);
+      renderHangman();
+
+      revealedName.innerText = currentBoy.name;
+      revealedWish.innerText = currentBoy.wish;
+      revealCard.classList.remove("hidden");
+      setTimeout(() => {
+        revealCard.classList.remove("scale-95");
+        revealCard.classList.add("scale-100");
+      }, 50);
+
+      confetti({
+        particleCount: 110,
+        spread: 85,
+        origin: { y: 0.6 }
+      });
+
+      btnRevealEmoji.disabled = true;
+      btnHint.disabled = true;
+      btnReveal.disabled = true;
+    }
+  </script>
+</body>
+</html>
